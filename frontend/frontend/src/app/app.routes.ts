@@ -10,5 +10,6 @@ export const routes: Routes = [
     component: ProductosComponent, 
     canActivate: [authGuard] 
   },
-  { path: '', redirectTo: '/login', pathMatch: 'full' }
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: '**', redirectTo: '/login' } 
 ];

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';  // ← Agregar
 
 @Injectable({
   providedIn: 'root'
@@ -11,34 +12,49 @@ export class AuthService {
   constructor(private http: HttpClient) { }
 
   login(username: string, password: string): Observable<any> {
-    return this.http.post(this.apiUrl, { username, password });
+    return this.http.post(this.apiUrl, { username, password }).pipe(
+      tap((response: any) => {
+        if (response.access) {
+          this.setToken(response.access);
+        }
+      })
+    );
   }
 
-  // Guardar token
   setToken(token: string): void {
     if (typeof window !== 'undefined') {
-    return localStorage.setItem('access_token', token);
+      localStorage.setItem('access_token', token);
     }
   }
 
-  // Obtener token
   getToken(): string | null {
-    // Preguntamos si existe el objeto window (propio de los navegadores)
     if (typeof window !== 'undefined') {
       return localStorage.getItem('access_token');
     }
     return null;
   }
 
-  // Cerrar sesión
   logout(): void {
     if (typeof window !== 'undefined') {
-    localStorage.removeItem('access_token');
+      localStorage.removeItem('access_token');
     }
   }
 
-  // Saber si está logueado
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) return false;
+    
+    // Verificar si el token ha expirado
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expirado = payload.exp * 1000 < Date.now();
+      if (expirado) {
+        this.logout();
+        return false;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 }
